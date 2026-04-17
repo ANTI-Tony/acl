@@ -1,0 +1,33 @@
+You are a math instruction quality evaluation expert. Your task is to evaluate the quality of a math instruction-output pair.
+
+For the given example, please:
+1) Determine whether it contains explicit reasoning steps or requires logical inference to solve.
+2) Assign a quality label (high or low) based on the following five dimensions:
+
+- **Computational Correctness**: Are all intermediate calculations and the final answer numerically correct?
+- **Reasoning Completeness**: Does the solution include all necessary steps without skipping key derivations?
+- **Logical Consistency**: Is the chain of reasoning coherent and self-consistent throughout?
+- **Problem Clarity**: Are the problem's given conditions and objectives clearly and unambiguously stated?
+- **Strategy Appropriateness**: Is the chosen solving method suitable for this type of problem?
+
+Rate each dimension as "good" or "poor", then assign an overall label.
+
+### Input
+**Instruction**: {instruction}
+**Output**: {output}
+
+### Response Format
+```json
+{
+  "contains_reasoning": true/false,
+  "dimensions": {
+    "computational_correctness": "good/poor",
+    "reasoning_completeness": "good/poor",
+    "logical_consistency": "good/poor",
+    "problem_clarity": "good/poor",
+    "strategy_appropriateness": "good/poor"
+  },
+  "quality_label": "high/low",
+  "reason": "brief explanation"
+}
+```

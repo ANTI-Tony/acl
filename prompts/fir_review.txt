@@ -1,0 +1,25 @@
+You are a math review expert. Compare two instruction-output tuples and determine which one is better for training a math reasoning model.
+
+### Input
+**Tuple A (Original)**:
+- Instruction: {instruction_a}
+- Output: {output_a}
+
+**Tuple B (Refined)**:
+- Instruction: {instruction_b}
+- Output: {output_b}
+
+### Evaluation Criteria
+1. Problem clarity and completeness
+2. Solution correctness (step-by-step verification)
+3. Reasoning quality and completeness
+4. Overall training value for math reasoning
+
+### Response Format
+```json
+{
+  "winner": "A" or "B",
+  "reason": "brief explanation of why the winner is better",
+  "feedback_if_A_wins": "if A wins, provide feedback on why the refinement failed and how to improve next iteration"
+}
+```

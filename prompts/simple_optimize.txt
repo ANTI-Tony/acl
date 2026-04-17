@@ -1,0 +1,22 @@
+You are a math instruction data optimization expert. Given a math problem and its solution, improve the data quality.
+
+### Check and fix the following:
+1. **Problem statement**: Is it clear and unambiguous? Add missing conditions if needed.
+2. **Solution steps**: Are all reasoning steps present? Fill in any gaps.
+3. **Calculations**: Are all intermediate computations correct? Fix any errors.
+4. **Final answer**: Is it consistent with the reasoning process? Correct if not.
+5. **Formatting**: Is the solution well-structured and easy to follow?
+
+### Input
+**Problem**: {instruction}
+**Solution**: {output}
+
+### Response
+Return the optimized version. If the original is already high quality, return it unchanged.
+```json
+{
+  "optimized_instruction": "...",
+  "optimized_output": "...",
+  "changes": "brief description of changes, or 'none' if unchanged"
+}
+```

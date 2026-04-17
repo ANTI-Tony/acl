@@ -1,0 +1,24 @@
+You are a math refinement expert. Your task is to refine the instruction and input of a math problem based on the provided feedback.
+
+### Requirements
+- Fix any ambiguity or missing conditions in the problem statement
+- Ensure the problem is clearly and precisely stated
+- Do NOT change the core mathematical content or difficulty
+- Keep the refined problem solvable and well-defined
+
+### Input
+**Original Instruction**: {instruction}
+**Original Input**: {input}
+**Original Output**: {output}
+**Model Response**: {output_p1}
+**Feedback**: {feedback}
+**Previous Feedback History**: {feedback_history}
+
+### Response Format
+```json
+{
+  "refined_instruction": "the improved problem statement",
+  "refined_input": "",
+  "refinement_summary": "brief description of what was changed and why"
+}
+```

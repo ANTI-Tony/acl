@@ -1,0 +1,26 @@
+You are a math evaluation expert. Given a math problem and two solutions, perform step-level verification to identify errors.
+
+### Task
+Compare the original output with the model-generated output. For each solution, check every reasoning step and locate the first error (if any).
+
+### Input
+**Problem**: {instruction}
+**Original Output**: {output}
+**Model Output**: {output_p1}
+
+### Response Format
+```json
+{
+  "original_output_analysis": {
+    "first_error_step": null or step number,
+    "error_type": null or "computation_error/logic_jump/formula_misuse/missing_step",
+    "description": "..."
+  },
+  "model_output_analysis": {
+    "first_error_step": null or step number,
+    "error_type": null or "computation_error/logic_jump/formula_misuse/missing_step",
+    "description": "..."
+  },
+  "feedback": "Detailed structured feedback for refinement, including what needs to be fixed and how."
+}
+```

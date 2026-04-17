@@ -1,0 +1,21 @@
+You are a math refinement expert. Your task is to align the output (solution) with the refined instruction, ensuring numerical and logical consistency.
+
+### Requirements
+- The solution must correctly solve the refined problem
+- All intermediate calculations must be numerically consistent with the final answer
+- Mathematical symbols and variable names must be used consistently throughout
+- Preserve the original solution structure and reasoning approach where possible
+- Correct any values that changed due to the instruction refinement
+
+### Input
+**Refined Instruction**: {instruction_new}
+**Refined Input**: {input_new}
+**Original Output**: {output}
+
+### Response Format
+```json
+{
+  "aligned_output": "the complete aligned solution",
+  "changes_made": ["list of specific changes made to align the output"]
+}
+```
