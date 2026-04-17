@@ -3,12 +3,17 @@ Step 3a: Instruction Quality Differentiation
 - Expert-guided quality labeling (math 5-dim)
 - K-means clustering for diversity
 - IFD scoring for difficulty
+
+Supports concurrent requests for Stage 1 labeling.
 """
 import json
 import os
+import asyncio
+import argparse
 import numpy as np
-from openai import OpenAI
+from openai import AsyncOpenAI, OpenAI
 from sklearn.cluster import KMeans
+from tqdm.asyncio import tqdm_asyncio
 from tqdm import tqdm
 
 # ---- Config ----
@@ -18,90 +23,105 @@ PROMPT_PATH = os.path.join(os.path.dirname(__file__), "..", "prompts", "iqd_qual
 EXPERT_URL = "http://localhost:8000/v1"
 EXPERT_MODEL = "Qwen/Qwen2.5-72B-Instruct-AWQ"
 N_CLUSTERS = 10
-TOP_K_RATIO = 0.5  # top 50% as high quality per cluster
+TOP_K_RATIO = 0.5
 
 
-def load_data(path):
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+def parse_json(text):
+    if text is None:
+        return {}
+    text = text.strip()
+    if "```json" in text:
+        text = text.split("```json")[1].split("```")[0]
+    elif "```" in text:
+        text = text.split("```")[1].split("```")[0]
+    try:
+        return json.loads(text.strip())
+    except json.JSONDecodeError:
+        return {}
 
 
-def load_prompt(path):
-    with open(path, "r", encoding="utf-8") as f:
-        return f.read()
+async def call_expert(client, prompt, semaphore, max_retries=3):
+    async with semaphore:
+        for attempt in range(max_retries):
+            try:
+                resp = await client.chat.completions.create(
+                    model=EXPERT_MODEL,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.1,
+                    max_tokens=512,
+                )
+                return resp.choices[0].message.content
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(1 * (attempt + 1))
+                else:
+                    print(f"API error after {max_retries} retries: {e}")
+                    return None
 
 
-def call_expert(client, prompt, max_retries=3):
-    for _ in range(max_retries):
-        try:
-            resp = client.chat.completions.create(
-                model=EXPERT_MODEL,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.1,
-                max_tokens=512,
-            )
-            return resp.choices[0].message.content
-        except Exception as e:
-            print(f"API error: {e}, retrying...")
-    return None
+async def label_item(client, item, template, semaphore, index):
+    prompt = template.format(
+        instruction=item["instruction"],
+        output=item["output"],
+    )
+    result = await call_expert(client, prompt, semaphore)
+    parsed = parse_json(result)
+    return index, {
+        "quality_label": parsed.get("quality_label", "low"),
+        "quality_detail": parsed.get("dimensions", {}),
+        "contains_reasoning": parsed.get("contains_reasoning", True),
+    }
 
 
-def get_embeddings(client, texts, batch_size=32):
-    """Get embeddings from the expert model."""
-    all_embeddings = []
-    for i in tqdm(range(0, len(texts), batch_size), desc="Getting embeddings"):
-        batch = texts[i:i + batch_size]
-        resp = client.embeddings.create(
-            model=EXPERT_MODEL,
-            input=batch,
-        )
-        for item in resp.data:
-            all_embeddings.append(item.embedding)
-    return np.array(all_embeddings)
+async def stage1_quality_labeling(data, template, workers=8):
+    """Expert-guided quality labeling with math-specific dimensions (concurrent)."""
+    print(f"\n=== Stage 1: Quality Labeling ({workers} workers) ===")
+    client = AsyncOpenAI(base_url=EXPERT_URL, api_key="not-needed")
+    semaphore = asyncio.Semaphore(workers)
 
+    tasks = [
+        label_item(client, item, template, semaphore, i)
+        for i, item in enumerate(data)
+    ]
 
-def stage1_quality_labeling(data, client, prompt_template):
-    """Expert-guided quality labeling with math-specific dimensions."""
-    print("\n=== Stage 1: Quality Labeling ===")
-    for item in tqdm(data, desc="Labeling"):
-        prompt = prompt_template.format(
-            instruction=item["instruction"],
-            output=item["output"],
-        )
-        result = call_expert(client, prompt)
-        try:
-            parsed = json.loads(result.strip().strip("```json").strip("```"))
-            item["quality_label"] = parsed.get("quality_label", "low")
-            item["quality_detail"] = parsed.get("dimensions", {})
-            item["contains_reasoning"] = parsed.get("contains_reasoning", False)
-        except (json.JSONDecodeError, AttributeError):
-            item["quality_label"] = "low"
-            item["quality_detail"] = {}
-            item["contains_reasoning"] = True
+    for coro in tqdm_asyncio.as_completed(tasks, total=len(tasks), desc="Labeling"):
+        index, result = await coro
+        data[index].update(result)
 
     # Filter: keep only samples with reasoning
     data = [d for d in data if d.get("contains_reasoning", True)]
     high = [d for d in data if d["quality_label"] == "high"]
     low = [d for d in data if d["quality_label"] == "low"]
     print(f"After labeling: {len(high)} high, {len(low)} low, {len(data)} total")
-    return data, high, low
+    return data
 
 
-def stage2_cluster_and_rank(data, client):
+def stage2_cluster_and_rank(data):
     """Cluster by semantic diversity, rank by IFD within each cluster."""
     print("\n=== Stage 2: Cluster & Difficulty-aware Scoring ===")
 
-    # Get embeddings
+    # Get embeddings via sync client
+    client = OpenAI(base_url=EXPERT_URL, api_key="not-needed")
     texts = [d["instruction"] + " " + d["output"] for d in data]
+
     try:
-        embeddings = get_embeddings(client, texts)
+        all_embeddings = []
+        batch_size = 32
+        for i in tqdm(range(0, len(texts), batch_size), desc="Embeddings"):
+            batch = texts[i:i + batch_size]
+            resp = client.embeddings.create(model=EXPERT_MODEL, input=batch)
+            for item in resp.data:
+                all_embeddings.append(item.embedding)
+        embeddings = np.array(all_embeddings)
     except Exception as e:
         print(f"Embedding API not available ({e}), using random assignment")
         np.random.seed(42)
         for d in data:
             d["cluster"] = np.random.randint(0, N_CLUSTERS)
             d["ifd_score"] = np.random.random()
-        return data
+        high = [d for d in data if d["quality_label"] == "high"]
+        low = [d for d in data if d["quality_label"] == "low"]
+        return high, low
 
     # K-means clustering
     kmeans = KMeans(n_clusters=N_CLUSTERS, random_state=42, n_init=10)
@@ -109,14 +129,14 @@ def stage2_cluster_and_rank(data, client):
     for i, d in enumerate(data):
         d["cluster"] = int(labels[i])
 
-    # IFD scoring (simplified: use solution length as proxy, replace with real IFD later)
+    # IFD scoring (simplified: use solution length ratio as proxy)
     # TODO: compute real IFD with backbone model
     for d in data:
         sol_len = len(d["output"].split())
         ins_len = len(d["instruction"].split())
         d["ifd_score"] = sol_len / max(ins_len, 1)
 
-    # Rank within each cluster: high-quality first, then by IFD (higher = harder = more valuable)
+    # Rank within each cluster
     clusters = {}
     for d in data:
         clusters.setdefault(d["cluster"], []).append(d)
@@ -132,20 +152,26 @@ def stage2_cluster_and_rank(data, client):
     return final_high, final_low
 
 
-def main():
+async def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--workers", type=int, default=8)
+    parser.add_argument("--data", type=str, default=DATA_PATH)
+    args = parser.parse_args()
+
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    client = OpenAI(base_url=EXPERT_URL, api_key="not-needed")
 
-    data = load_data(DATA_PATH)
-    prompt_template = load_prompt(PROMPT_PATH)
+    with open(args.data, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    with open(PROMPT_PATH, "r", encoding="utf-8") as f:
+        template = f.read()
 
-    # Stage 1: Quality labeling
-    data, _, _ = stage1_quality_labeling(data, client, prompt_template)
+    # Stage 1
+    data = await stage1_quality_labeling(data, template, workers=args.workers)
 
-    # Stage 2: Cluster and rank
-    high, low = stage2_cluster_and_rank(data, client)
+    # Stage 2
+    high, low = stage2_cluster_and_rank(data)
 
-    # Save results
+    # Save
     with open(os.path.join(OUTPUT_DIR, "iqd_high.json"), "w", encoding="utf-8") as f:
         json.dump(high, f, ensure_ascii=False, indent=2)
     with open(os.path.join(OUTPUT_DIR, "iqd_low.json"), "w", encoding="utf-8") as f:
@@ -155,4 +181,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
