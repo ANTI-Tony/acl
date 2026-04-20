@@ -89,20 +89,26 @@ def main():
         report_to="none",
     )
 
+    import inspect
+    sig_params = inspect.signature(SFTTrainer.__init__).parameters
+
     trainer_kwargs = dict(
         model=model,
         args=training_args,
         train_dataset=train_data,
         peft_config=lora_config,
-        max_seq_length=args.max_length,
     )
-    # trl >= 0.12 uses processing_class, older uses tokenizer
-    import inspect
-    sig = inspect.signature(SFTTrainer.__init__)
-    if "processing_class" in sig.parameters:
+
+    # max_seq_length: supported in some versions, otherwise ignore
+    if "max_seq_length" in sig_params:
+        trainer_kwargs["max_seq_length"] = args.max_length
+
+    # tokenizer param name differs across versions
+    if "processing_class" in sig_params:
         trainer_kwargs["processing_class"] = tokenizer
-    else:
+    elif "tokenizer" in sig_params:
         trainer_kwargs["tokenizer"] = tokenizer
+
     trainer = SFTTrainer(**trainer_kwargs)
 
     print("Starting training...")
