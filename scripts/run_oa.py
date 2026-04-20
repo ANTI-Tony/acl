@@ -17,8 +17,8 @@ HIGH_DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "optimize
 REFINED_DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "optimized", "fir_refined.json")
 OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "optimized", "final_optimized.json")
 PROMPT_PATH = os.path.join(os.path.dirname(__file__), "..", "prompts", "oa_align.txt")
-EXPERT_URL = "http://localhost:8000/v1"
-EXPERT_MODEL = "Qwen/Qwen2.5-72B-Instruct-AWQ"
+EXPERT_URL = os.environ.get("EXPERT_URL", "http://localhost:8000/v1")
+EXPERT_MODEL = os.environ.get("EXPERT_MODEL", "Qwen/Qwen2.5-32B-Instruct-AWQ")
 
 
 def parse_json(text):

@@ -16,8 +16,8 @@ from tqdm.asyncio import tqdm_asyncio
 DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "raw", "math_5k.json")
 OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "optimized", "simple_optimized.json")
 PROMPT_PATH = os.path.join(os.path.dirname(__file__), "..", "prompts", "simple_optimize.txt")
-EXPERT_URL = "http://localhost:8000/v1"
-EXPERT_MODEL = "Qwen/Qwen2.5-72B-Instruct-AWQ"
+EXPERT_URL = os.environ.get("EXPERT_URL", "http://localhost:8000/v1")
+EXPERT_MODEL = os.environ.get("EXPERT_MODEL", "Qwen/Qwen2.5-32B-Instruct-AWQ")
 
 
 def parse_json(text):

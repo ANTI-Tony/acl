@@ -9,8 +9,8 @@ from collections import Counter
 from openai import OpenAI
 from tqdm import tqdm
 
-EXPERT_URL = "http://localhost:8000/v1"
-EXPERT_MODEL = "Qwen/Qwen2.5-72B-Instruct-AWQ"
+EXPERT_URL = os.environ.get("EXPERT_URL", "http://localhost:8000/v1")
+EXPERT_MODEL = os.environ.get("EXPERT_MODEL", "Qwen/Qwen2.5-32B-Instruct-AWQ")
 
 CATEGORIZE_PROMPT = """You are a math error analysis expert. Given a math problem, the correct answer, and the model's wrong answer, categorize the error.
 

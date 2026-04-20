@@ -1,21 +1,21 @@
 #!/bin/bash
-# Deploy Qwen2.5-72B-Instruct with vLLM on 2x A100
-# Uses AWQ 4-bit quantization to fit in ~80GB
+# Deploy expert model with vLLM
+# Default: Qwen2.5-32B-Instruct-AWQ on single A100
+# Override: EXPERT_MODEL=Qwen/Qwen2.5-72B-Instruct-AWQ TP=2 bash scripts/serve_expert.sh
 
-MODEL="Qwen/Qwen2.5-72B-Instruct-AWQ"
-PORT=8000
+MODEL=${EXPERT_MODEL:-"Qwen/Qwen2.5-32B-Instruct-AWQ"}
+PORT=${PORT:-8000}
+TP=${TP:-1}
 
-echo "Starting vLLM server for ${MODEL} on port ${PORT}..."
-echo "Using 2x A100 with tensor parallelism"
+echo "Starting vLLM server..."
+echo "  Model: ${MODEL}"
+echo "  Tensor Parallel: ${TP}"
+echo "  Port: ${PORT}"
 
 python -m vllm.entrypoints.openai.api_server \
     --model ${MODEL} \
-    --tensor-parallel-size 2 \
+    --tensor-parallel-size ${TP} \
     --port ${PORT} \
-    --max-model-len 4096 \
+    --max-model-len 2048 \
     --gpu-memory-utilization 0.90 \
-    --dtype auto \
-    --trust-remote-code
-
-# After server is up, test with:
-# curl http://localhost:8000/v1/models
+    --dtype auto

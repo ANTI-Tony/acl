@@ -20,8 +20,8 @@ from tqdm import tqdm
 DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "raw", "math_5k.json")
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "optimized")
 PROMPT_PATH = os.path.join(os.path.dirname(__file__), "..", "prompts", "iqd_quality_label.txt")
-EXPERT_URL = "http://localhost:8000/v1"
-EXPERT_MODEL = "Qwen/Qwen2.5-72B-Instruct-AWQ"
+EXPERT_URL = os.environ.get("EXPERT_URL", "http://localhost:8000/v1")
+EXPERT_MODEL = os.environ.get("EXPERT_MODEL", "Qwen/Qwen2.5-32B-Instruct-AWQ")
 N_CLUSTERS = 10
 TOP_K_RATIO = 0.5
 

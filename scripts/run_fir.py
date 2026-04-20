@@ -16,8 +16,8 @@ from tqdm.asyncio import tqdm_asyncio
 LOW_DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "optimized", "iqd_low.json")
 OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "optimized", "fir_refined.json")
 PROMPT_DIR = os.path.join(os.path.dirname(__file__), "..", "prompts")
-EXPERT_URL = "http://localhost:8000/v1"
-EXPERT_MODEL = "Qwen/Qwen2.5-72B-Instruct-AWQ"
+EXPERT_URL = os.environ.get("EXPERT_URL", "http://localhost:8000/v1")
+EXPERT_MODEL = os.environ.get("EXPERT_MODEL", "Qwen/Qwen2.5-32B-Instruct-AWQ")
 MAX_ITERATIONS = 3
 
 
