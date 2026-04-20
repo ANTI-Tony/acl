@@ -89,14 +89,21 @@ def main():
         report_to="none",
     )
 
-    trainer = SFTTrainer(
+    trainer_kwargs = dict(
         model=model,
         args=training_args,
         train_dataset=train_data,
-        tokenizer=tokenizer,
         peft_config=lora_config,
         max_seq_length=args.max_length,
     )
+    # trl >= 0.12 uses processing_class, older uses tokenizer
+    import inspect
+    sig = inspect.signature(SFTTrainer.__init__)
+    if "processing_class" in sig.parameters:
+        trainer_kwargs["processing_class"] = tokenizer
+    else:
+        trainer_kwargs["tokenizer"] = tokenizer
+    trainer = SFTTrainer(**trainer_kwargs)
 
     print("Starting training...")
     trainer.train()
