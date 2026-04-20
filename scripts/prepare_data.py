@@ -16,7 +16,7 @@ def main():
     random.seed(SEED)
 
     print("Downloading MATH dataset...")
-    ds = load_dataset("hendrycks/competition_math", split="train")
+    ds = load_dataset("EleutherAI/hendrycks_math", split="train", trust_remote_code=True)
     print(f"Total samples: {len(ds)}")
 
     # Stratified sampling by difficulty level
