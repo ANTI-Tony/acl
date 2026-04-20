@@ -80,16 +80,21 @@ async def refine_sample(client, sample, eval_tmpl, refine_tmpl, review_tmpl, sem
             break
 
         # 2. Evaluate
-        eval_prompt = eval_tmpl.format(instruction=ins, output=out, output_p1=out_p1)
+        eval_prompt = (eval_tmpl
+            .replace("{instruction}", ins)
+            .replace("{output}", out)
+            .replace("{output_p1}", out_p1))
         eval_result = parse_json(await call_expert(client, eval_prompt, semaphore))
         feedback = eval_result.get("feedback", "")
 
         # 3. Refine
-        refine_prompt = refine_tmpl.format(
-            instruction=ins, input=inp, output=out, output_p1=out_p1,
-            feedback=feedback,
-            feedback_history=json.dumps(feedback_history, ensure_ascii=False),
-        )
+        refine_prompt = (refine_tmpl
+            .replace("{instruction}", ins)
+            .replace("{input}", inp)
+            .replace("{output}", out)
+            .replace("{output_p1}", out_p1)
+            .replace("{feedback}", feedback)
+            .replace("{feedback_history}", json.dumps(feedback_history, ensure_ascii=False)))
         refine_result = parse_json(await call_expert(client, refine_prompt, semaphore))
         ins_new = refine_result.get("refined_instruction", ins)
         inp_new = refine_result.get("refined_input", inp)
@@ -100,10 +105,11 @@ async def refine_sample(client, sample, eval_tmpl, refine_tmpl, review_tmpl, sem
             break
 
         # 5. Review
-        review_prompt = review_tmpl.format(
-            instruction_a=ins, output_a=out_p1,
-            instruction_b=ins_new, output_b=out_p2,
-        )
+        review_prompt = (review_tmpl
+            .replace("{instruction_a}", ins)
+            .replace("{output_a}", out_p1)
+            .replace("{instruction_b}", ins_new)
+            .replace("{output_b}", out_p2))
         review_result = parse_json(await call_expert(client, review_prompt, semaphore))
         winner = review_result.get("winner", "A")
 

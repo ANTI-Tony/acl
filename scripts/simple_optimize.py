@@ -54,10 +54,7 @@ async def call_expert(client, prompt, semaphore, max_retries=3):
 
 
 async def process_item(client, item, template, semaphore, index):
-    prompt = template.format(
-        instruction=item["instruction"],
-        output=item["output"],
-    )
+    prompt = template.replace("{instruction}", item["instruction"]).replace("{output}", item["output"])
     result = await call_expert(client, prompt, semaphore)
     parsed = parse_json(result)
     return index, {

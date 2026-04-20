@@ -61,11 +61,10 @@ async def align_item(client, item, template, semaphore, index):
 
     # Only align if instruction was actually changed
     if ins_new != item["instruction"]:
-        prompt = template.format(
-            instruction_new=ins_new,
-            input_new=inp_new,
-            output=output,
-        )
+        prompt = (template
+            .replace("{instruction_new}", ins_new)
+            .replace("{input_new}", inp_new)
+            .replace("{output}", output))
         result = await call_expert(client, prompt, semaphore)
         parsed = parse_json(result)
         aligned_output = parsed.get("aligned_output", output)

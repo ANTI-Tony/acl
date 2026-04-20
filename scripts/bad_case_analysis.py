@@ -70,11 +70,10 @@ def analyze_bad_cases(client, bad_cases):
     """Categorize each bad case."""
     categorized = []
     for case in tqdm(bad_cases, desc="Categorizing errors"):
-        prompt = CATEGORIZE_PROMPT.format(
-            problem=case["problem"],
-            correct_answer=case["correct_answer"],
-            model_output=case["model_output"],
-        )
+        prompt = (CATEGORIZE_PROMPT
+            .replace("{problem}", case["problem"])
+            .replace("{correct_answer}", case["correct_answer"])
+            .replace("{model_output}", case["model_output"]))
         result = parse_json(call_expert(client, prompt))
         categorized.append({
             **case,
