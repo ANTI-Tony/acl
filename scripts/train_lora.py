@@ -6,6 +6,7 @@ import json
 import os
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments
+from datasets import Dataset
 from peft import LoraConfig, get_peft_model
 try:
     from trl import SFTTrainer, SFTConfig
@@ -33,7 +34,7 @@ def load_data(path):
                 {"role": "assistant", "content": output},
             ]
         })
-    return formatted
+    return Dataset.from_list(formatted)
 
 
 def main():
