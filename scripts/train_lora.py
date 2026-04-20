@@ -7,7 +7,11 @@ import os
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments
 from peft import LoraConfig, get_peft_model
-from trl import SFTTrainer, SFTConfig
+try:
+    from trl import SFTTrainer, SFTConfig
+except ImportError:
+    from trl import SFTTrainer
+    SFTConfig = None
 
 
 def load_data(path):
@@ -71,7 +75,7 @@ def main():
     print(f"Training samples: {len(train_data)}")
 
     # Training config
-    training_args = SFTConfig(
+    training_args = TrainingArguments(
         output_dir=args.output_dir,
         num_train_epochs=args.num_epochs,
         per_device_train_batch_size=args.batch_size,
@@ -82,7 +86,6 @@ def main():
         bf16=True,
         logging_steps=10,
         save_strategy="epoch",
-        max_seq_length=args.max_length,
         report_to="none",
     )
 
@@ -90,8 +93,9 @@ def main():
         model=model,
         args=training_args,
         train_dataset=train_data,
-        processing_class=tokenizer,
+        tokenizer=tokenizer,
         peft_config=lora_config,
+        max_seq_length=args.max_length,
     )
 
     print("Starting training...")
